@@ -1,70 +1,124 @@
-# Getting Started with Create React App
+# 옵저버 패턴을 적용한 무한 스크롤
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+옵저버 패턴과 [thecatapi](https://thecatapi.com/)를 사용하여 스크롤을 내릴 때 마다 고양이를 불러오는 페이지를 만들었습니다
 
-## Available Scripts
+# 간단한 동작 원리
 
-In the project directory, you can run:
+IntersectionObserver를 사용해서 최하단에 있는 div가 화면에 나오면 이를 감지하여 새로운 사진을 불러옵니다. <br/>
 
-### `yarn start`
+순서는 아래와 같습니다.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. 첫 렌더링이 완료된 후 옵저버 생성
+2. 옵저버 Element가 화면에 감지될 경우 obsHandler() 실행
+3. obsHandler() 함수가 page값 변경
+4. useEffect 훅에 의해 getPost() 실행
+5. 데이터 조회 API 호출
+6. 데이터 렌더링 완료
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# 코드 설명
 
-### `yarn test`
+## 상태값 정리
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```javascript
+// 고양이 사진 리스트
+const [list, setList] = useState([]);
 
-### `yarn build`
+// 고양이 사진 리스트를 얼마나 추가했는지
+const [page, setPage] = useState(1);
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+// 로딩 여부
+const [load, setLoad] = useState(1);
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+// 업데이트가 완료되었는지 확인(중복 실행 방지)
+// useRef는 업데이트가 되어도 리렌더링이 되지 않음
+const preventRef = useRef(true);
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+// 옵저버가 관측하고 있는 대상
+const obsRef = useRef(null);
+```
 
-### `yarn eject`
+## 첫 화면 렌더링 시 발생 이벤트
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+아래의 코드는 첫 렌더링 당시 동작하는 코드입니다.<br>
+첫 이미지, 옵저버, 옵저버 이벤트, 감시 대상 추가
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```javascript
+// 처음 화면 렌더링 시
+useEffect(() => {
+  // 첫번째 고양이 사진을 추가한다.
+  getCat();
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+  // 옵저버를 추가한다
+  const observer = new IntersectionObserver(obsHandler, { threshold: 0.5 });
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+  // 감시 대상을 추가한다.
+  if (obsRef.current) observer.observe(obsRef.current);
+  return () => {
+    // 화면에서 나갈 때 옵저버를 지운다
+    observer.disconnect();
+  };
+}, []);
 
-## Learn More
+// 옵저버 이벤트
+const obsHandler = (entries) => {
+  const target = entries[0];
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+  // 관찰 대상이 관찰되고(target.isIntersecting)
+  // 업데이트가 완료 되었을 때(preventRef.current)
+  // 고양이 사진을 추가한다
+  if (target.isIntersecting && preventRef.current) {
+    preventRef.current = false;
+    setPage((prev) => prev + 1);
+  }
+};
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+//글 불러오기
+const getCat = useCallback(async () => {
+  setLoad(true); //로딩 시작
+  // 고양이 사진 불러옴
+  const res = await axios({
+    method: "GET",
+    url: `https://api.thecatapi.com/v1/images/search`,
+  });
 
-### Code Splitting
+  // 정상적으로 고양이 사진을 가져오면
+  if (res.data) {
+    setList((prev) => [...prev, { ...res.data[0] }]); //리스트 추가
+    preventRef.current = true;
+  } else {
+    console.log(res); //에러
+  }
+  setLoad(false); //로딩 종료
+}, [page]);
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 화면 코드
 
-### Analyzing the Bundle Size
+여기서 확인할 대상은 맨 아래의 옵저버 대상입니다.<br/>
+해당 div가 화면에 보이는지 옵저버가 감시하여<br/>
+보이면 옵저버 이벤트가 실행됩니다.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `yarn build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```javascript
+<>
+  <div className="wrap min-h-[100vh]">
+    {list && (
+      <>
+        {list.map((li) => (
+          <img
+            key={li.id}
+            className="opacity-100 mx-auto mb-6"
+            src={li.url}
+            alt={li.dke}
+            width={"60%"}
+            height={"50%"}
+          />
+        ))}
+      </>
+    )}
+    {load && <div className="py-3 bg-blue-500 text-center">로딩 중</div>}
+    <div ref={obsRef} className="py-3 bg-red-500 text-white text-center">
+      옵저버 Element
+    </div>
+  </div>
+</>
+```
