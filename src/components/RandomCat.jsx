@@ -64,8 +64,11 @@ const RandomCat = () => {
           </>
         )}
         {load && <div className="py-3 bg-blue-500 text-center">로딩 중</div>}
-        <div ref={obsRef} className="py-3 bg-red-500 text-white text-center">
-          옵저버 Element
+        <div
+          ref={obsRef}
+          className="py-3 bg-red-500 text-white text-center"
+        >
+          옵<br />저<br />버<br /> E<br />l<br />e<br />m<br />e<br />n<br />t
         </div>
       </div>
     </>

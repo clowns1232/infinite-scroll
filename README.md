@@ -4,7 +4,13 @@
 
 # 간단한 동작 원리
 
-IntersectionObserver를 사용해서 최하단에 있는 div가 화면에 나오면 이를 감지하여 새로운 사진을 불러옵니다. <br/>
+[IntersectionObserver](https://developer.mozilla.org/ko/docs/Web/API/IntersectionObserver)를 사용해서 최하단에 있는 div가 화면에 나오면 이를 감지하여 새로운 사진을 불러옵니다. <br/>
+
+<img
+  src="./static/IntersectionObserver.jpg"
+  width="100%"
+  height="100%"
+/>
 
 순서는 아래와 같습니다.
 
@@ -122,3 +128,11 @@ const getCat = useCallback(async () => {
   </div>
 </>
 ```
+
+# IntersectionObserver vs scroll
+
+간단히 요약하자면 scroll 이벤트를 어떻게 잘 최적화를 시켜도
+IntersectionObserver가 성능적으로 좋습니다.
+[해당 페이지](https://itnext.io/1v1-scroll-listener-vs-intersection-observers-469a26ab9eb6)를 읽어봅시다.
+
+
